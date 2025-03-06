@@ -1,104 +1,53 @@
-name: Selenium Test Automation
+name: Selenium Tests CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
   pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:
-    # Manual trigger option
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      test_groups: ${{ steps.set-matrix.outputs.test_groups }}
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]  
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
         
-      - name: Define test groups
-        id: set-matrix
+      - name: Set Up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          
+      - name: Cache Maven Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+          
+      - name: Set Up Chrome and ChromeDriver
+        uses: nanasess/setup-chromedriver@v2
+        with:
+          chrome-version: 'stable'
+          
+      - name: Verify Chrome and ChromeDriver Versions
         run: |
-          # Define test groups for parallel execution
-          echo "test_groups=[\"ui-tests\", \"api-tests\"]" >> $GITHUB_OUTPUT
-
-  test:
-    needs: setup
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false  # Continue running other jobs even if one fails
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        test_group: ${{ fromJson(needs.setup.outputs.test_groups) }}
+          google-chrome --version || echo "Google Chrome not found"
+          chromedriver --version || echo "ChromeDriver not found"
+          
+      - name: Run Tests with Maven
+        run: mvn test
         
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '11'
-        
-    - name: Cache Maven packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-        
-    # Ubuntu Chrome setup
-    - name: Setup Chrome on Ubuntu
-      if: runner.os == 'Linux'
-      run: |
-        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-        sudo apt-get update
-        sudo apt-get install -y google-chrome-stable
-        
-        CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1)
-        CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-        wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
-        unzip chromedriver_linux64.zip
-        sudo mv chromedriver /usr/local/bin/
-        sudo chmod +x /usr/local/bin/chromedriver
-    
-    # Windows Chrome setup
-    - name: Setup Chrome on Windows
-      if: runner.os == 'Windows'
-      run: |
-        choco install googlechrome
-        choco install chromedriver
-    
-    # macOS Chrome setup
-    - name: Setup Chrome on macOS
-      if: runner.os == 'macOS'
-      run: |
-        brew install --cask google-chrome
-        brew install --cask chromedriver
-        
-    - name: Install dependencies
-      run: |
-        mvn clean install -DskipTests
-      shell: bash
-        
-    - name: Run Selenium tests - UI Tests
-      if: matrix.test_group == 'ui-tests'
-      run: |
-        mvn test -Dgroups=ui-tests
-      shell: bash
-      
-    - name: Run Selenium tests - API Tests
-      if: matrix.test_group == 'api-tests'
-      run: |
-        mvn test -Dgroups=api-tests
-      shell: bash
-      
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results-${{ matrix.os }}-${{ matrix.test_group }}
-        path: target/surefire-reports/
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: target/surefire-reports/
