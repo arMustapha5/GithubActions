@@ -1,0 +1,182 @@
+name: Selenium Test Automation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    # Manual trigger option
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      test_groups: ${{ steps.set-matrix.outputs.test_groups }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Define test groups
+        id: set-matrix
+        run: |
+          # Define test groups for parallel execution - customize based on your project structure
+          echo "test_groups=[\"ui-tests\", \"api-tests\", \"functional-tests\"]" >> $GITHUB_OUTPUT
+
+  test:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false  # Continue running other jobs even if one fails
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        test_group: ${{ fromJson(needs.setup.outputs.test_groups) }}
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'  # Eclipse Temurin JDK
+        java-version: '17'       # Java version
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Cache Maven packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Setup Chrome (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+        
+        CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1)
+        CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+        wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+        unzip chromedriver_linux64.zip
+        sudo mv chromedriver /usr/local/bin/
+        sudo chmod +x /usr/local/bin/chromedriver
+    
+    - name: Setup Chrome (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install googlechrome
+        choco install chromedriver
+
+    - name: Install dependencies
+      run: |
+        if [ -f pom.xml ]; then
+          mvn clean install -DskipTests
+        elif [ -f requirements.txt ]; then
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        else
+          echo "No dependency file found. Please provide a pom.xml or requirements.txt"
+          exit 1
+        fi
+      shell: bash
+        
+    - name: Run Selenium tests - UI Tests
+      if: matrix.test_group == 'ui-tests'
+      run: |
+        if [ -f pom.xml ]; then
+          mvn test -Dgroups=ui-tests
+        elif [ -f pytest.ini ] || [ -d tests ]; then
+          python -m pytest tests/ui/ -v
+        fi
+      shell: bash
+      
+    - name: Run Selenium tests - API Tests
+      if: matrix.test_group == 'api-tests'
+      run: |
+        if [ -f pom.xml ]; then
+          mvn test -Dgroups=api-tests
+        elif [ -f pytest.ini ] || [ -d tests ]; then
+          python -m pytest tests/api/ -v
+        fi
+      shell: bash
+      
+    - name: Run Selenium tests - Functional Tests
+      if: matrix.test_group == 'functional-tests'
+      run: |
+        if [ -f pom.xml ]; then
+          mvn test -Dgroups=functional-tests
+        elif [ -f pytest.ini ] || [ -d tests ]; then
+          python -m pytest tests/functional/ -v
+        fi
+      shell: bash
+      
+    - name: Generate test report
+      if: always()
+      run: |
+        mkdir -p test-reports/${{ matrix.test_group }}/${{ matrix.os }}
+        if [ -f pom.xml ]; then
+          cp -r target/surefire-reports/* test-reports/${{ matrix.test_group }}/${{ matrix.os }}/ || echo "No test reports found"
+        elif [ -d .pytest_cache ]; then
+          cp -r .pytest_cache/* test-reports/${{ matrix.test_group }}/${{ matrix.os }}/ || echo "No test reports found"
+        fi
+      shell: bash
+        
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.test_group }}-${{ matrix.os }}
+        path: test-reports/${{ matrix.test_group }}/${{ matrix.os }}/
+
+  notify:
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Download all workflow run artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: all-test-results
+    
+    - name: Send email notification
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: XYZ Bank Test Results - ${{ job.status }}
+        body: |
+          GitHub Actions workflow has completed with status: ${{ job.status }}
+          
+          Repository: ${{ github.repository }}
+          Workflow: ${{ github.workflow }}
+          Run ID: ${{ github.run_id }}
+          Run Number: ${{ github.run_number }}
+          
+          The tests were executed on multiple platforms and test types.
+          See the detailed results here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        to: team@example.com
+        from: GitHub Actions
+        
+    - name: Send Slack notification
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_CHANNEL: qa-test-alerts
+        SLACK_USERNAME: GitHub Actions
+        SLACK_TITLE: XYZ Bank Test Results
+        SLACK_MESSAGE: |
+          Test run ${{ github.run_number }} completed with status: ${{ job.status }}
+          Tests were executed on multiple platforms (Ubuntu, Windows) and test types (UI, API, Functional).
+          See details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+        SLACK_ICON: https://github.com/github.png
