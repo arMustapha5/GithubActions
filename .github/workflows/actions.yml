@@ -20,8 +20,8 @@ jobs:
       - name: Define test groups
         id: set-matrix
         run: |
-          # Define test groups for parallel execution - customize based on your project structure
-          echo "test_groups=[\"ui-tests\", \"api-tests\", \"functional-tests\"]" >> $GITHUB_OUTPUT
+          # Define test groups for parallel execution
+          echo "test_groups=[\"ui-tests\", \"api-tests\"]" >> $GITHUB_OUTPUT
 
   test:
     needs: setup
@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false  # Continue running other jobs even if one fails
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         test_group: ${{ fromJson(needs.setup.outputs.test_groups) }}
         
     steps:
@@ -39,13 +39,8 @@ jobs:
     - name: Set up JDK
       uses: actions/setup-java@v3
       with:
-        distribution: 'temurin'  # Eclipse Temurin JDK
-        java-version: '17'       # Java version
-        
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+        distribution: 'temurin'
+        java-version: '11'
         
     - name: Cache Maven packages
       uses: actions/cache@v3
@@ -54,7 +49,8 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-    - name: Setup Chrome (Ubuntu)
+    # Ubuntu Chrome setup
+    - name: Setup Chrome on Ubuntu
       if: runner.os == 'Linux'
       run: |
         wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
@@ -69,114 +65,40 @@ jobs:
         sudo mv chromedriver /usr/local/bin/
         sudo chmod +x /usr/local/bin/chromedriver
     
-    - name: Setup Chrome (Windows)
+    # Windows Chrome setup
+    - name: Setup Chrome on Windows
       if: runner.os == 'Windows'
       run: |
         choco install googlechrome
         choco install chromedriver
-
+    
+    # macOS Chrome setup
+    - name: Setup Chrome on macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install --cask google-chrome
+        brew install --cask chromedriver
+        
     - name: Install dependencies
       run: |
-        if [ -f pom.xml ]; then
-          mvn clean install -DskipTests
-        elif [ -f requirements.txt ]; then
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-        else
-          echo "No dependency file found. Please provide a pom.xml or requirements.txt"
-          exit 1
-        fi
+        mvn clean install -DskipTests
       shell: bash
         
     - name: Run Selenium tests - UI Tests
       if: matrix.test_group == 'ui-tests'
       run: |
-        if [ -f pom.xml ]; then
-          mvn test -Dgroups=ui-tests
-        elif [ -f pytest.ini ] || [ -d tests ]; then
-          python -m pytest tests/ui/ -v
-        fi
+        mvn test -Dgroups=ui-tests
       shell: bash
       
     - name: Run Selenium tests - API Tests
       if: matrix.test_group == 'api-tests'
       run: |
-        if [ -f pom.xml ]; then
-          mvn test -Dgroups=api-tests
-        elif [ -f pytest.ini ] || [ -d tests ]; then
-          python -m pytest tests/api/ -v
-        fi
+        mvn test -Dgroups=api-tests
       shell: bash
       
-    - name: Run Selenium tests - Functional Tests
-      if: matrix.test_group == 'functional-tests'
-      run: |
-        if [ -f pom.xml ]; then
-          mvn test -Dgroups=functional-tests
-        elif [ -f pytest.ini ] || [ -d tests ]; then
-          python -m pytest tests/functional/ -v
-        fi
-      shell: bash
-      
-    - name: Generate test report
-      if: always()
-      run: |
-        mkdir -p test-reports/${{ matrix.test_group }}/${{ matrix.os }}
-        if [ -f pom.xml ]; then
-          cp -r target/surefire-reports/* test-reports/${{ matrix.test_group }}/${{ matrix.os }}/ || echo "No test reports found"
-        elif [ -d .pytest_cache ]; then
-          cp -r .pytest_cache/* test-reports/${{ matrix.test_group }}/${{ matrix.os }}/ || echo "No test reports found"
-        fi
-      shell: bash
-        
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v3
       with:
-        name: test-results-${{ matrix.test_group }}-${{ matrix.os }}
-        path: test-reports/${{ matrix.test_group }}/${{ matrix.os }}/
-
-  notify:
-    needs: test
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-    - name: Download all workflow run artifacts
-      uses: actions/download-artifact@v3
-      with:
-        path: all-test-results
-    
-    - name: Send email notification
-      uses: dawidd6/action-send-mail@v3
-      with:
-        server_address: smtp.gmail.com
-        server_port: 465
-        username: ${{ secrets.EMAIL_USERNAME }}
-        password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: XYZ Bank Test Results - ${{ job.status }}
-        body: |
-          GitHub Actions workflow has completed with status: ${{ job.status }}
-          
-          Repository: ${{ github.repository }}
-          Workflow: ${{ github.workflow }}
-          Run ID: ${{ github.run_id }}
-          Run Number: ${{ github.run_number }}
-          
-          The tests were executed on multiple platforms and test types.
-          See the detailed results here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        to: team@example.com
-        from: GitHub Actions
-        
-    - name: Send Slack notification
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-        SLACK_CHANNEL: qa-test-alerts
-        SLACK_USERNAME: GitHub Actions
-        SLACK_TITLE: XYZ Bank Test Results
-        SLACK_MESSAGE: |
-          Test run ${{ github.run_number }} completed with status: ${{ job.status }}
-          Tests were executed on multiple platforms (Ubuntu, Windows) and test types (UI, API, Functional).
-          See details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
-        SLACK_ICON: https://github.com/github.png
+        name: test-results-${{ matrix.os }}-${{ matrix.test_group }}
+        path: target/surefire-reports/
