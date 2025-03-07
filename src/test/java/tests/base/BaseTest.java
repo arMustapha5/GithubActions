@@ -15,7 +15,7 @@ public class BaseTest {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--start-maximized");
         options.addArguments("--disable-notifications");
-        options.addArguments("--user-data-dir=/tmp/chrome-profile"); // Use a unique directory
+//        options.addArguments("--user-data-dir=/tmp/chrome-profile"); // Use a unique directory
         WebDriverManager.chromedriver().setup();
         driver = new ChromeDriver(options);
 
