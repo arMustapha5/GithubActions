@@ -12,12 +12,18 @@ public class BaseTest {
 
     @BeforeMethod
     public void setUp() {
-//        ChromeOptions options = new ChromeOptions();
-//        options.addArguments("--start-maximized");
-//        options.addArguments("--disable-notifications");
-//        options.addArguments("--user-data-dir=/tmp/chrome-data"); // Use a unique directory
-        WebDriverManager.chromedriver().setup();
-        driver = new ChromeDriver();
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--no-sandbox"); // Helps in CI/CD
+        options.addArguments("--disable-dev-shm-usage"); // Prevents memory issues in containers
+        options.addArguments("--disable-gpu"); // Fixes graphics issues in headless mode
+        options.addArguments("--disable-extensions"); // Prevents conflicts with extensions
+        options.addArguments("--remote-debugging-port=9222"); // Avoids port conflicts
+        options.addArguments("--disable-software-rasterizer"); // Improves stability
+        options.addArguments("--incognito"); // Ensures a fresh profile each run
+        options.addArguments("--headless=new"); // Run in headless mode (can be removed if not needed)
+
+        WebDriverManager.chromedriver().clearDriverCache().setup();
+        driver = new ChromeDriver(options);
 
         // Set implicit wait for the entire session
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
