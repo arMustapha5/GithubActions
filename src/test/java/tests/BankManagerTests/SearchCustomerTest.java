@@ -4,27 +4,33 @@ import base.BaseTest;
 import org.junit.jupiter.api.Order;
 import org.testng.annotations.Test;
 import pages.utils.bankManagerPages.BankManagerLoginPage;
+import pages.utils.bankManagerPages.SearchCustomer;
+import pages.utils.bankManagerPages.ViewCustomers;
 
-public class BankManagerLoginPageTest extends BaseTest {
+public class SearchCustomerTest extends BaseTest {
     // Static variable to track whether the test has been run
     private static boolean hasTestRun = false;
-    @Order(0)
-    @Test
-    public void clickBankManagerLogin() {
+    @Order(4)
+    @Test(priority = 4)
+    public void testSearchCustomers() {
         // Check if the test has already run
         if (hasTestRun) {
-            System.out.println("Test has already been executed. Skipping.");
+            System.out.println("Search Customer test has already been executed. Skipping.");
             return;
         }
 
-        // Initialize the page object
+        // Initialize page objects
         BankManagerLoginPage managerPage = new BankManagerLoginPage(driver);
+        ViewCustomers viewCustomers = new ViewCustomers(driver);
+        SearchCustomer searchCustomers = new SearchCustomer(driver);
 
         // Add initial pause
         pauseExecution(2000);
 
-        // Click Bank Manager Login
+        // Perform search customer steps
         managerPage.clickBankManagerLogin();
+        viewCustomers.clickCustomers();
+        searchCustomers.setSearchCustomerButton("Hermoine");
 
         // Mark the test as run
         hasTestRun = true;

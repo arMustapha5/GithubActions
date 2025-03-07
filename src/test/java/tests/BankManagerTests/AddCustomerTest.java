@@ -1,6 +1,6 @@
 package tests.BankManagerTests;
 
-import tests.base.BaseTest;
+import base.BaseTest;
 import org.testng.annotations.Test;
 import pages.utils.bankManagerPages.AddCustomer;
 import pages.utils.bankManagerPages.BankManagerLoginPage;

@@ -4,27 +4,36 @@ import base.BaseTest;
 import org.junit.jupiter.api.Order;
 import org.testng.annotations.Test;
 import pages.utils.bankManagerPages.BankManagerLoginPage;
+import pages.utils.bankManagerPages.DeleteAccount;
+import pages.utils.bankManagerPages.SearchCustomer;
+import pages.utils.bankManagerPages.ViewCustomers;
 
-public class BankManagerLoginPageTest extends BaseTest {
+public class DeleteAccountTest extends BaseTest {
     // Static variable to track whether the test has been run
     private static boolean hasTestRun = false;
-    @Order(0)
-    @Test
-    public void clickBankManagerLogin() {
+    @Order(5)
+    @Test(priority = 5)
+    public void testDeleteCustomer() {
         // Check if the test has already run
         if (hasTestRun) {
-            System.out.println("Test has already been executed. Skipping.");
+            System.out.println("Delete Account test has already been executed. Skipping.");
             return;
         }
 
-        // Initialize the page object
+        // Initialize page objects
         BankManagerLoginPage managerPage = new BankManagerLoginPage(driver);
+        ViewCustomers viewCustomers = new ViewCustomers(driver);
+        SearchCustomer searchCustomers = new SearchCustomer(driver);
+        DeleteAccount deleteAccount = new DeleteAccount(driver);
 
         // Add initial pause
         pauseExecution(2000);
 
-        // Click Bank Manager Login
+        // Perform delete customer steps
         managerPage.clickBankManagerLogin();
+        viewCustomers.clickCustomers();
+        searchCustomers.setSearchCustomerButton("Hermoine");
+        deleteAccount.setDeleteCustomerButton();
 
         // Mark the test as run
         hasTestRun = true;

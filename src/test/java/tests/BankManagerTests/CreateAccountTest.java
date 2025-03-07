@@ -4,27 +4,33 @@ import base.BaseTest;
 import org.junit.jupiter.api.Order;
 import org.testng.annotations.Test;
 import pages.utils.bankManagerPages.BankManagerLoginPage;
+import pages.utils.bankManagerPages.CreateAccount;
 
-public class BankManagerLoginPageTest extends BaseTest {
+public class CreateAccountTest extends BaseTest {
     // Static variable to track whether the test has been run
     private static boolean hasTestRun = false;
-    @Order(0)
-    @Test
-    public void clickBankManagerLogin() {
+    @Order(2)
+    @Test(priority = 2)
+    public void testOpenAccount() {
         // Check if the test has already run
         if (hasTestRun) {
-            System.out.println("Test has already been executed. Skipping.");
+            System.out.println("Create Account test has already been executed. Skipping.");
             return;
         }
 
-        // Initialize the page object
+        // Initialize page objects
         BankManagerLoginPage managerPage = new BankManagerLoginPage(driver);
+        CreateAccount createAccount = new CreateAccount(driver);
 
         // Add initial pause
         pauseExecution(2000);
 
-        // Click Bank Manager Login
+        // Perform account creation steps
         managerPage.clickBankManagerLogin();
+        createAccount.clickOpenAccount();
+        createAccount.selectCustomer("Hermoine Granger");
+        createAccount.selectCurrency("Dollar");
+        createAccount.submitForm();
 
         // Mark the test as run
         hasTestRun = true;
