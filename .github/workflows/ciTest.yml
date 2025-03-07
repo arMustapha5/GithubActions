@@ -52,9 +52,9 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.MAIL_SERVER }}
-          server_port: ${{ SECRETS.MAIL_PORT }}
-          username: ${{ SECRETS.MAIL_USERNAME }}
-          password: ${{ SECRETS.MAIL_PASSWORD }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
           subject: "Selenium Test Results - ${{ github.workflow }} (Run #${{ github.run_number }})"
           to: ${{ secrets.NOTIFICATION_EMAIL }}
           from: "GitHub Actions <${{ SECRETS.MAIL_USERNAME }}>"
@@ -66,8 +66,8 @@ jobs:
 
             Check full logs here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-      - name: Send Slack Notification
-        if: always()
+      - name: Send Slack Notification (Linux/macOS)
+        if: always() && runner.os != 'Windows'
         run: |
           STATUS="${{ job.status }}"
           if [ "$STATUS" == "success" ]; then
@@ -75,7 +75,23 @@ jobs:
           else
             message="❌ *Tests Failed!* ❌"
           fi
-
           curl -X POST -H 'Content-type: application/json' \
           --data "{\"text\":\"$message\nRepo: $GITHUB_REPOSITORY\nCommit: $GITHUB_SHA\nTrigger: $GITHUB_EVENT_NAME\nCheck logs: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" \
-          ${{ SECRETS.SLACK_WEBHOOK_URL }}
+          ${{ secrets.SLACK_WEBHOOK_URL }}
+        shell: bash
+
+      - name: Send Slack Notification (Windows)
+        if: always() && runner.os == 'Windows'
+        run: |
+          $STATUS = "${{ job.status }}"
+          if ($STATUS -eq "success") {
+            $message = "✅ *Tests Passed!* ✅"
+          } else {
+            $message = "❌ *Tests Failed!* ❌"
+          }
+          $payload = @{
+            text = "$message`nRepo: $env:GITHUB_REPOSITORY`nCommit: $env:GITHUB_SHA`nTrigger: $env:GITHUB_EVENT_NAME`nCheck logs: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          } | ConvertTo-Json -Compress
+          
+          Invoke-RestMethod -Uri "${{ secrets.SLACK_WEBHOOK_URL }}" -Method Post -ContentType "application/json" -Body $payload
+        shell: pwsh
