@@ -37,12 +37,6 @@ jobs:
         with:
           chrome-version: 'stable'
 
-      - name: Verify Chrome and ChromeDriver Versions
-        run: |
-          google-chrome --version || echo "Google Chrome not found"
-          chromedriver --version || echo "ChromeDriver not found"
-          chrome --version || echo "Google Chrome not found"
-
 
       - name: Run Tests with Maven
         run: mvn test
