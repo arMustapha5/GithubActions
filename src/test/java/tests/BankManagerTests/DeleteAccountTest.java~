@@ -1,0 +1,4 @@
+package tests.BankManagertests;
+
+public class DeleteAccountTest {
+}

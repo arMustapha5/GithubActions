@@ -63,46 +63,41 @@ jobs:
           fi
         shell: bash
 
-      - name: Send Slack Notification
-        if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ steps.check_status.outputs.status }}
-          fields: repo,message,commit,author,action,workflow,job
-          text: |
-            ${{ steps.check_status.outputs.emoji }} ${{ steps.check_status.outputs.message }}
-            Repository: ${{ github.repository }}
-            OS: ${{ maxtrix.os }}
-            Workflow: ${{ github.workflow }}
-            Run URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        env:
-          # YOU NEED TO ADD THIS SECRET: Create a Slack webhook URL and add it to your GitHub repository secrets
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          # To create a Slack webhook:
-          # 1. Go to your Slack workspace > Administration > Manage apps
-          # 2. Search for "Incoming Webhooks" and add to workspace
-          # 3. Create a new webhook for a specific channel
-          # 4. Copy the webhook URL
-          # 5. Add it as a repository secret in GitHub: Settings > Secrets > New repository secret
-
-  notification:
-    needs: test
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Check Test Matrix Status
-        id: status_check
-        run: |
-          if [ "${{ needs.test.result }}" == "success" ]; then
-            echo "status=success" >> $GITHUB_OUTPUT
-            echo "subject=✅ Selenium Tests Passed" >> $GITHUB_OUTPUT
-            echo "body=All Selenium tests passed successfully across all operating systems." >> $GITHUB_OUTPUT
-          else
-            echo "status=failure" >> $GITHUB_OUTPUT
-            echo "subject=❌ Selenium Tests Failed" >> $GITHUB_OUTPUT
-            echo "body=One or more Selenium tests failed. Please check the GitHub Actions logs for more details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
+#      - name: Send Slack Notification
+#        if: always()
+#        uses: 8398a7/action-slack@v3
+#        with:
+#          status: ${{ steps.check_status.outputs.status }}
+#          fields: repo,message,commit,author,action,workflow,job
+#          text: |
+#            ${{ steps.check_status.outputs.emoji }} ${{ steps.check_status.outputs.message }}
+#            Repository: ${{ github.repository }}
+#            OS: ${{ maxtrix.os }}
+#            Workflow: ${{ github.workflow }}
+#            Run URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+#        env:
+#
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+#
+#
+#  notification:
+#    needs: test
+#    runs-on: ubuntu-latest
+#    if: always()
+#    steps:
+#      - name: Check Test Matrix Status
+#        id: status_check
+#        run: |
+#          if [ "${{ needs.test.result }}" == "success" ]; then
+#            echo "status=success" >> $GITHUB_OUTPUT
+#            echo "subject=✅ Selenium Tests Passed" >> $GITHUB_OUTPUT
+#            echo "body=All Selenium tests passed successfully across all operating systems." >> $GITHUB_OUTPUT
+#          else
+#            echo "status=failure" >> $GITHUB_OUTPUT
+#            echo "subject=❌ Selenium Tests Failed" >> $GITHUB_OUTPUT
+#            echo "body=One or more Selenium tests failed. Please check the GitHub Actions logs for more details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+#          fi
+#        shell: bash
 
       - name: Send Email Notification
         uses: dawidd6/action-send-mail@v3
