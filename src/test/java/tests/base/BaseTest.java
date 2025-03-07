@@ -15,7 +15,7 @@ public class BaseTest {
         ChromeOptions options = new ChromeOptions();
 //        options.addArguments("--no-sandbox"); // Helps in CI/CD
 //        options.addArguments("--remote-debugging-port=9222"); // Avoids port conflicts
-        options.addArguments("--incognito"); // Ensures a fresh profile each run
+//        options.addArguments("--incognito"); // Ensures a fresh profile each run
         options.addArguments("--headless=new"); // Run in headless mode (can be removed if not needed)
         WebDriverManager.chromedriver().clearDriverCache().setup();
         driver = new ChromeDriver(options);
