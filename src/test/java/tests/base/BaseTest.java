@@ -16,9 +16,9 @@ public class BaseTest {
         options.addArguments("--no-sandbox");
         options.addArguments("--start-maximized");
         options.addArguments("--disable-notifications");
-        options.addArguments("--user-data-dir=/tmp/chrome-data"); // Use a unique directory
+//        options.addArguments("--user-data-dir=/tmp/chrome-data"); // Use a unique directory
         options.addArguments("--incognito"); // Ensures a fresh profile each run
-        WebDriverManager.chromedriver().clearDriverCache().clearResolutionCache().setup();
+        WebDriverManager.chromedriver().clearDriverCache().setup();
         driver = new ChromeDriver(options);
 
         // Set implicit wait for the entire session
