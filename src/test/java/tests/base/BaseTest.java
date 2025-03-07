@@ -15,7 +15,7 @@ public class BaseTest {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless=new"); // Run in headless mode (can be removed if not needed)
 
-        WebDriverManager.chromedriver().setup();
+        WebDriverManager.chromedriver().clearDriverCache().setup();
         driver = new ChromeDriver(options);
 
         // Set implicit wait for the entire session
