@@ -14,10 +14,7 @@ public class BaseTest {
     public void setUp() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--no-sandbox"); // Helps in CI/CD
-//        options.addArguments("--disable-gpu"); // Fixes graphics issues in headless mode
-//        options.addArguments("--disable-extensions"); // Prevents conflicts with extensions
-        options.addArguments("--remote-debugging-port=9222"); // Avoids port conflicts
-//        options.addArguments("--disable-software-rasterizer"); // Improves stability
+//        options.addArguments("--remote-debugging-port=9222"); // Avoids port conflicts
         options.addArguments("--incognito"); // Ensures a fresh profile each run
         options.addArguments("--headless=new"); // Run in headless mode (can be removed if not needed)
         WebDriverManager.chromedriver().clearDriverCache().setup();
