@@ -13,11 +13,9 @@ public class BaseTest {
     @BeforeMethod
     public void setUp() {
         ChromeOptions options = new ChromeOptions();
-//        options.addArguments("--no-sandbox"); // Helps in CI/CD
-//        options.addArguments("--remote-debugging-port=9222"); // Avoids port conflicts
-//        options.addArguments("--incognito"); // Ensures a fresh profile each run
         options.addArguments("--headless=new"); // Run in headless mode (can be removed if not needed)
-        WebDriverManager.chromedriver().clearDriverCache().setup();
+
+        WebDriverManager.chromedriver().setup();
         driver = new ChromeDriver(options);
 
         // Set implicit wait for the entire session
