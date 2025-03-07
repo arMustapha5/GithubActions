@@ -47,75 +47,35 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}
           path: target/surefire-reports/
-          
-      - name: Check Test Status
-        id: check_status
-        if: always()
-        run: |
-          if [ "${{ steps.test.outcome }}" == "success" ]; then
-            echo "status=success" >> $GITHUB_OUTPUT
-            echo "emoji=✅" >> $GITHUB_OUTPUT
-            echo "message=Tests passed successfully!" >> $GITHUB_OUTPUT
-          else
-            echo "status=failure" >> $GITHUB_OUTPUT
-            echo "emoji=❌" >> $GITHUB_OUTPUT
-            echo "message=Tests failed! Check logs for details." >> $GITHUB_OUTPUT
-          fi
-        shell: bash
-
-#      - name: Send Slack Notification
-#        if: always()
-#        uses: 8398a7/action-slack@v3
-#        with:
-#          status: ${{ steps.check_status.outputs.status }}
-#          fields: repo,message,commit,author,action,workflow,job
-#          text: |
-#            ${{ steps.check_status.outputs.emoji }} ${{ steps.check_status.outputs.message }}
-#            Repository: ${{ github.repository }}
-#            OS: ${{ maxtrix.os }}
-#            Workflow: ${{ github.workflow }}
-#            Run URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-#        env:
-#
-#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-#
-#
-#  notification:
-#    needs: test
-#    runs-on: ubuntu-latest
-#    if: always()
-#    steps:
-#      - name: Check Test Matrix Status
-#        id: status_check
-#        run: |
-#          if [ "${{ needs.test.result }}" == "success" ]; then
-#            echo "status=success" >> $GITHUB_OUTPUT
-#            echo "subject=✅ Selenium Tests Passed" >> $GITHUB_OUTPUT
-#            echo "body=All Selenium tests passed successfully across all operating systems." >> $GITHUB_OUTPUT
-#          else
-#            echo "status=failure" >> $GITHUB_OUTPUT
-#            echo "subject=❌ Selenium Tests Failed" >> $GITHUB_OUTPUT
-#            echo "body=One or more Selenium tests failed. Please check the GitHub Actions logs for more details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
-#          fi
-#        shell: bash
-
       - name: Send Email Notification
+        if: always()  # Run this step regardless of test result (success or failure)
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.MAIL_SERVER }}     
-          server_port: ${{ secrets.MAIL_PORT }}         
-          username: ${{ secrets.MAIL_USERNAME }}          
-          password: ${{ secrets.MAIL_PASSWORD }}          
-          subject: ${{ steps.status_check.outputs.subject }} - ${{ github.repository }}
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Selenium Test Results - ${{ github.workflow }} (Run #${{ github.run_number }})"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: "GitHub Actions <${{ secrets.SMTP_EMAIL }}>"
           body: |
-            ${{ steps.status_check.outputs.body }}
-            
-            Commit: ${{ github.sha }}
-            Branch: ${{ github.ref_name }}
-            Triggered by: ${{ github.actor }}
-            
-            View detailed logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          from: CI Pipeline <${{ secrets.MAIL_USERNAME }}>
-          to: ${{ secrets.NOTIFICATION_EMAIL }} 
-          secure: true
-          
+            **Repository**: ${{ github.repository }}
+            **Branch**: ${{ github.ref }}
+            **Commit**: ${{ github.sha }}
+            **Status**: ${{ job.status }}
+
+            Check full logs here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Send Slack Notification
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" == "success" ]; then
+            message="✅ *Tests Passed!* ✅"
+          else
+            message="❌ *Tests Failed!* ❌"
+          fi
+
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{\"text\":\"$message\nRepo: $GITHUB_REPOSITORY\nCommit: $GITHUB_SHA\nTrigger: $GITHUB_EVENT_NAME\nCheck logs: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
