@@ -52,12 +52,12 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.MAIL_SERVER }}
-          server_port: ${{ secrets.MAIL_PORT }}
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
+          server_port: ${{ SECRETS.MAIL_PORT }}
+          username: ${{ SECRETS.MAIL_USERNAME }}
+          password: ${{ SECRETS.MAIL_PASSWORD }}
           subject: "Selenium Test Results - ${{ github.workflow }} (Run #${{ github.run_number }})"
           to: ${{ secrets.NOTIFICATION_EMAIL }}
-          from: "GitHub Actions <${{ secrets.SMTP_EMAIL }}>"
+          from: "GitHub Actions <${{ SECRETS.MAIL_USERNAME }}>"
           body: |
             **Repository**: ${{ github.repository }}
             **Branch**: ${{ github.ref }}
@@ -78,4 +78,4 @@ jobs:
 
           curl -X POST -H 'Content-type: application/json' \
           --data "{\"text\":\"$message\nRepo: $GITHUB_REPOSITORY\nCommit: $GITHUB_SHA\nTrigger: $GITHUB_EVENT_NAME\nCheck logs: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          ${{ SECRETS.SLACK_WEBHOOK_URL }}
