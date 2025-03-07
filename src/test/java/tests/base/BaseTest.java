@@ -12,12 +12,12 @@ public class BaseTest {
 
     @BeforeMethod
     public void setUp() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--start-maximized");
-        options.addArguments("--disable-notifications");
-        options.addArguments("--user-data-dir=/tmp/chrome-data"); // Use a unique directory
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--start-maximized");
+//        options.addArguments("--disable-notifications");
+//        options.addArguments("--user-data-dir=/tmp/chrome-data"); // Use a unique directory
         WebDriverManager.chromedriver().setup();
-        driver = new ChromeDriver(options);
+        driver = new ChromeDriver();
 
         // Set implicit wait for the entire session
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
