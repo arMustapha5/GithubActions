@@ -1,4 +1,4 @@
-lname: Selenium Tests CI
+name: Selenium Tests CI
 
 on:
   push:
