@@ -13,12 +13,9 @@ public class BaseTest {
     @BeforeMethod
     public void setUp() {
         ChromeOptions options = new ChromeOptions();
-<<<<<<< Updated upstream
-        options.addArguments("--headless=new"); // Run in headless mode (can be removed if not needed)
-=======
         options.addArguments("--headless=new","--no-sandbox","--disable-dev-shm-usage"
         ); // Run in headless mode (can be removed if not needed)
->>>>>>> Stashed changes
+
 
         WebDriverManager.chromedriver().clearDriverCache().setup();
         driver = new ChromeDriver(options);
@@ -35,8 +32,4 @@ public class BaseTest {
             driver.quit();
         }
     }
-<<<<<<< Updated upstream
 }
-=======
-}
->>>>>>> Stashed changes
